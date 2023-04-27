@@ -4,6 +4,7 @@ import requests
 
 import shutil
 import os
+import platform
 
 import subprocess
 
@@ -13,11 +14,15 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushBut
 from PyQt5.QtGui import QIcon, QFont, QPixmap
 from PyQt5.QtCore import Qt
 
+import tool_mnr as tmnr
+
 WIDTH = 700
 HEIGHT = 500
 X = 100
 Y = 100
-py_loc = r'C:\Users\rohin\AppData\Local\Programs\Python\Python38\python.exe'        
+        
+py_loc = sys.executable
+print("Path to Python3 interpreter:", py_loc)
 
 class ToolManagerWindow(QMainWindow):
     def __init__(self):
@@ -210,7 +215,8 @@ class ToolManagerWindow(QMainWindow):
         self.installLogLayout.addWidget(QLabel(txt))
 
         try:
-            txt = subprocess.Popen(f"{py_loc} tool_mnr.py install {self.feature}", shell=True, stdout=subprocess.PIPE).stdout
+            #txt = subprocess.Popen(f"{py_loc} tool_mnr.py install {self.feature}", shell=True, stdout=subprocess.PIPE).stdout
+            txt = tmnr.install(self.feature)
             txt = txt.read().decode('utf-8')
             self.installLogLayout.addWidget(QLabel(txt))
     

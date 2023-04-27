@@ -1,0 +1,3 @@
+tqdm
+py7zr
+PyQt5

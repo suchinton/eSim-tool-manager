@@ -4,6 +4,7 @@ import shutil
 import requests
 from tqdm.auto import tqdm
 import subprocess
+import platform
 
 from py7zr import pack_7zarchive, unpack_7zarchive
 shutil.register_archive_format('7zip', pack_7zarchive, description='7zip archive')
@@ -11,44 +12,81 @@ shutil.register_unpack_format('7zip', ['.7z'], unpack_7zarchive)
 
 #print(sys.argv)
 
-cfg = open(f'C:/Users/{os.getlogin()}/.esim/config.ini').read().split('\n')
-eSim_HOME = cfg[1][cfg[1].find('= ')+2:]
-home_1 = '/'.join(eSim_HOME.split('\\')[:-1]).strip()
+if platform.system() == "Windows":
+    print("Running on Windows")
+    config_file = f'C:/Users/{os.getlogin()}/.esim/config.ini'
+    cfg = open(config_file).read().split('\n')
+    print("Path to eSim config:", cfg)
+    eSim_HOME = cfg[1][cfg[1].find('= ')+2:]
+    home_1 = '/'.join(eSim_HOME.split('\\')[:-1]).strip()
+
+elif platform.system() == "Linux":
+    print("Running on Linux-based system")
+    config_file = os.path.expanduser("~/.esim/config.ini")
+    cfg = open(config_file).read().split('\n')
+    print("Path to eSim config:", cfg)
+    print("-------------------------")
+    eSim_HOME = cfg[1][cfg[1].find('= ')+2:]
+    print(eSim_HOME)
+    print('-------------------------')
+    home_1 = '/'.join(eSim_HOME.split('\\')[:-1]).strip()
+    print(home_1)
+    print("-------------------------")
+
+else:
+    print("Unknown operating system")
+
+# cfg = open(config_file).read().split('\n')
+# print("Path to eSim config:", cfg)
+#
+# eSim_HOME = cfg[1][cfg[1].find('= ')+2:]
+# home_1 = '/'.join(eSim_HOME.split('\\')[:-1]).strip()
+
 def install(pkg):
     if pkg == 'makerchip':
         try:
-            url = "https://github.com/FOSSEE/eSim/raw/installers/Windows/makerchip.7z"
+            if platform.system() == "Linux":
+                print('[INFO] Installing Makerchip package!')
+                packages = open("Linux_scripts/install_makerchip").readlines()
+                for package in packages:
+                    try:
+                        subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+                        print(f'[INFO] Package: {package} Installed!')
+                    except Exception as e: print("[ERROR!]: ",e)
+                return 1
+            else:
+                url = "https://github.com/FOSSEE/eSim/raw/installers/Windows/makerchip.7z"
 
-            out_file = "makerchip.7z"
+                out_file = "makerchip.7z"
 
-            with requests.get(url, stream=True) as r:
-                # check header to get content length, in bytes
-                total_length = int(r.headers.get("Content-Length"))
-                
-                # implement progress bar via tqdm
-                with tqdm.wrapattr(r.raw, "read", total=total_length, desc="")as raw:
-                
-                    # save the output to a file
-                    with open(out_file, 'wb')as output:
-                        shutil.copyfileobj(raw, output)
+                with requests.get(url, stream=True) as r:
+                    # check header to get content length, in bytes
+                    total_length = int(r.headers.get("Content-Length"))
 
-            print('[INFO] Received the payload')
+                    # implement progress bar via tqdm
+                    with tqdm.wrapattr(r.raw, "read", total=total_length, desc="")as raw:
+                    
+                        # save the output to a file
+                        with open(out_file, 'wb')as output:
+                            shutil.copyfileobj(raw, output)
 
-            #extract the received zip file
-            path_to_extract = '.'.join(out_file.split('.')[:-1])
-            shutil.unpack_archive(out_file, path_to_extract)
-            
-            destination = f'{home_1}/MSYS/mingw64/bin/'
-            
-            os.chmod(destination, 777)
-            shutil.copy(f'{path_to_extract}/{path_to_extract}/makerchip.exe', destination)
-            shutil.copy(f'{path_to_extract}/{path_to_extract}/sandpiper-saas.exe', destination)
+                print('[INFO] Received the payload')
 
-            shutil.rmtree(path_to_extract)
-            os.remove(out_file)
-            
-            print('[INFO] Package Installed!')
-            return 1
+                #extract the received zip file
+                path_to_extract = '.'.join(out_file.split('.')[:-1])
+                shutil.unpack_archive(out_file, path_to_extract)
+
+                destination = f'{home_1}/MSYS/mingw64/bin/'
+
+                os.chmod(destination, 777)
+                shutil.copy(f'{path_to_extract}/{path_to_extract}/makerchip.exe', destination)
+                shutil.copy(f'{path_to_extract}/{path_to_extract}/sandpiper-saas.exe', destination)
+
+                shutil.rmtree(path_to_extract)
+                os.remove(out_file)
+
+                print('[INFO] Package Installed!')
+                return 1
 
         except Exception as e:
             print(f'[ERROR] {e}')
@@ -96,18 +134,20 @@ def uninstall(pkg):
         except Exception as e:
             return 0
 
-if len(sys.argv) != 3:
-    print("Invalid process request")
-    exit(0)
 
-if sys.argv[2] not in ['makerchip', 'sky130']:
-    print("Invalid process request")
-    exit(0)
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Invalid process request")
+        exit(0)
 
-if sys.argv[1] == 'install':
-    install(sys.argv[2])
-elif sys.argv[1] == 'uninstall':
-    uninstall(sys.argv[2])
-else:
-    print("Invalid process request")
-    exit(0)
+    if sys.argv[2] not in ['makerchip', 'sky130']:
+        print("Invalid process request")
+        exit(0)
+
+    if sys.argv[1] == 'install':
+        install(sys.argv[2])
+    elif sys.argv[1] == 'uninstall':
+        uninstall(sys.argv[2])
+    else:
+        print("Invalid process request")
+        exit(0)
